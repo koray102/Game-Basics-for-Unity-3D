@@ -46,12 +46,13 @@ public class PlayerMovement : MonoBehaviour
         // If you don't use this if statement the "realisticGravity" variable will increase constantly.
         if (isGrounded && velocityY < 0)
         {
+            Debug.Log("zort");
             // You can make it "0f" but it is better.
             velocityY = 0f;
         }else
         {
             // To make gravity force more realistic (1/2 * g * t^2)
-            velocityY += gravity * Time.deltaTime * Time.deltaTime;
+            velocityY += gravity * Time.deltaTime;
         }
         characterController.Move(new Vector3(0, velocityY , 0));
 
