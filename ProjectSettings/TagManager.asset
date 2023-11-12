@@ -7,11 +7,22 @@ TagManager:
   - Fire
   - FxTemporaire
   - SlowDown
+  - Point
+  - FireCircle
+  - hedef
+  - hedef1
+  - hedef2
+  - hedef3
+  - hedef4
+  - hedef5
+  - hedef6
+  - hedef7
+  - hedef8
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Wall
   - Water
   - UI
   - Ground
