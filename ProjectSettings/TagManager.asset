@@ -18,6 +18,7 @@ TagManager:
   - hedef6
   - hedef7
   - hedef8
+  - bitti
   layers:
   - Default
   - TransparentFX

@@ -29,6 +29,7 @@ public class PlayerMovementPhysics : MonoBehaviour
     public float slowDownSpeedInput;
     public float slowDownJumpInput;
     public Slider slider;
+    public GameObject bitti;
 
 
     private bool isGrounded;
@@ -88,11 +89,6 @@ public class PlayerMovementPhysics : MonoBehaviour
             jumpForce = 0;
         }
 
-       
-
-        //Debug.Log(hit.normal);
-        //Debug.DrawRay(hit.point, camTransform.position - hit.point, Color.green);
-
         if(Input.GetMouseButtonDown(0) & shootCount == 0 & timeAfterShoot > shootDelay)
         {
             if (Physics.Raycast(camTransform.position, camTransform.forward, out hit, Mathf.Infinity, 1<<7))
@@ -109,7 +105,12 @@ public class PlayerMovementPhysics : MonoBehaviour
                 }
 
                 Physics.Raycast(camTransform.position, camTransform.forward, out hit, Mathf.Infinity);
+
                 shootedObject = hit.collider.gameObject;
+                if(shootedObject.TryGetComponent(out ExplodeObject ExplodeObject))
+                {
+                    ExplodeObject.Explode();
+                }
                 
                 direction = (transform.position - hit.point).normalized * knockBackPower;
                 direction = new Vector3(direction.x * XZmultp, direction.y * Ymultp, direction.z * XZmultp);
@@ -153,6 +154,13 @@ public class PlayerMovementPhysics : MonoBehaviour
         if(other.gameObject.CompareTag("SlowDown"))
         {
             isSlow = false;
+        }
+    }
+
+    private void OnTriggerEnter(Collider other) {
+        if(other.gameObject.CompareTag("bitti"))
+        {
+            bitti.SetActive(true);
         }
     }
 }
