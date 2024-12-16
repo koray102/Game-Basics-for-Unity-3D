@@ -35,7 +35,7 @@ public class ExplodeObject : MonoBehaviour
                     childObj.GetComponent<BrokenPartExplode>().collisionMultp = BrokenPartCollMultp;
 
                     childRbs.isKinematic = false;
-                    childRbs.AddExplosionForce(collisionMultp, playerMoveSc.hit.point, 2000);
+                    //childRbs.AddExplosionForce(collisionMultp, playerMoveSc.hit.point, 2000);
                 }
             }
 

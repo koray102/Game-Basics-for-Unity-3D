@@ -18,7 +18,7 @@ public class BrokenPartExplode : MonoBehaviour
 
     void Update()
     {
-        hitObject = playerMoveSc.shootedObject;
+        //hitObject = playerMoveSc.shootedObject;
     }
 
 
@@ -27,7 +27,7 @@ public class BrokenPartExplode : MonoBehaviour
         if(hitObject == gameObject)
         {
             //partShootSFX.PlayOneShot(partShootSFX.clip);
-            rb.AddExplosionForce(collisionMultp, playerMoveSc.hit.point, 2);
+            //rb.AddExplosionForce(collisionMultp, playerMoveSc.hit.point, 2);
         }
     }
 }

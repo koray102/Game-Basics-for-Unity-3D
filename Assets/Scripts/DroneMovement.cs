@@ -51,7 +51,7 @@ public class DroneMovement : MonoBehaviour
         transform.LookAt(player.transform);
         transform.position = Vector3.Lerp(transform.position, targetPos.position, speed);
 
-        hitObject = playerMoveSc.shootedObject;
+        //hitObject = playerMoveSc.shootedObject;
 
         if(hitObject == drone & !didExploded)
         {
@@ -73,7 +73,7 @@ public class DroneMovement : MonoBehaviour
 
             foreach (var rb in rbs)
             {
-                rb.AddExplosionForce(collisionMultp, playerMoveSc.hit.point, 2);
+                //rb.AddExplosionForce(collisionMultp, playerMoveSc.hit.point, 2);
             }
             didExploded = true;
             Destroy(gameObject, exploedSFX.clip.length);

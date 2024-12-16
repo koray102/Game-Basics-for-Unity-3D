@@ -1,43 +1,42 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.IO.LowLevel.Unsafe;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class PlayerMovementPhysics : MonoBehaviour
 {
-    private float speed;
-    public float speedInput;
-    public float runSpeed;
-    private Rigidbody playerRb;
-    private float leftRight;
-    private float forwardBackward;
-    public float jumpForceInput;
-    private float jumpForce;
-    private Vector3 direction;
-    public float knockBackPower;
-    public float Ymultp;
-    public float XZmultp;
-    public Transform camTransform;
-    private int shootCount;
-    public GameObject bumBum;
-    private GameObject fireEffect;
-    public RaycastHit hit;
-    internal float timeAfterShoot = 1;
-    public float shootDelay;
-    private bool isSlow;
-    public float slowDownSpeedInput;
-    public float slowDownJumpInput;
-    public Slider slider;
-    public GameObject bitti;
+    [SerializeField] private GameObject cam;
 
-
-    private bool isGrounded;
+    [Header("Movement")]
+    [SerializeField] private float speedInput;
+    [SerializeField] private float runSpeed;
+    [SerializeField] private float jumpForce;
+    [SerializeField] private float maxSpeed;
     public Transform groundCheckTransform;
     public float radiusOfSphere = 0.3f;
     public LayerMask groundMask;
-    public GameObject shootedObject;
-    public AudioSource shootSFX;
+
+    [Header("Grab")]
+    [SerializeField] private float maxGrabDistance = 10;
+    [SerializeField] private LayerMask ignoreRaycast;
+    [SerializeField] private float springStiffness;
+    [SerializeField] private float damperStiffness;
+    [SerializeField] private ProceduralChain proceduralChain;
+
+    private float restLength;
+    private float lastLength;
+    private bool grapInput;
+    private bool isGrabbing;
+    private Vector3 grabPoint;
+    private  Vector3 grabLastPosition;
+    private GameObject grabbedObject;
+    private Rigidbody grabbedRb;
+    private float speed;
+    private bool isJumping;
+    private Rigidbody playerRb;
+    private float horizontal;
+    private float vertical;
+    private bool isGrounded;
 
 
     void Start()
@@ -51,116 +50,153 @@ public class PlayerMovementPhysics : MonoBehaviour
 
     void Update()
     {
+        horizontal = Input.GetAxis("Horizontal");
+        vertical = Input.GetAxis("Vertical");
+        grapInput = Input.GetKeyDown(KeyCode.E);
+
         isGrounded = Physics.CheckSphere(groundCheckTransform.position, radiusOfSphere, groundMask);
+      
+        if(Input.GetKey(KeyCode.LeftShift))
+        {
+            speed = runSpeed;
+        }else
+        {
+            speed = speedInput;
+        }
         
-        if(isSlow)
+        if(Input.GetKeyDown("space") && isGrounded)
         {
-            speed = slowDownSpeedInput;
-            if(Input.GetKeyDown("space") & isGrounded)
-            {
-                //Debug.Log("zipla");
-                jumpForce = slowDownJumpInput;
-            }
-        }else
-        {
-            if(Input.GetKey(KeyCode.LeftShift))
-            {
-                speed = runSpeed;
-            }else
-            {
-                speed = speedInput;
-            }
-            
-            if(Input.GetKeyDown("space") & isGrounded)
-            {
-                //Debug.Log("zipla");
-                jumpForce = jumpForceInput;
-            }
+            //Debug.Log("jump");
+            isJumping = true;
         }
 
-        leftRight = Input.GetAxis("Horizontal") * speed;
-        forwardBackward = Input.GetAxis("Vertical") * speed;
+        
+        if(isGrabbing && grapInput)
+        {
+            grabbedObject = null;
+            grabbedRb = null;
+            grabLastPosition = Vector3.zero;
+            lastLength = 0;
 
-        if(isGrounded)
-        {
-            shootCount = 0;
-        }else
-        {
-            jumpForce = 0;
+            isGrabbing = false;
+            grapInput = false;
         }
 
-        if(Input.GetMouseButtonDown(0) & shootCount == 0 & timeAfterShoot > shootDelay)
+        if(!isGrabbing && grapInput && Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, maxGrabDistance, ~ignoreRaycast))
         {
-            if (Physics.Raycast(camTransform.position, camTransform.forward, out hit, Mathf.Infinity, 1<<7))
-            {
-                
-            }else
-            {
-                shootSFX.PlayOneShot(shootSFX.clip);
-                timeAfterShoot = 0;
+            grabbedObject = hit.transform.gameObject;
+            grabbedRb = grabbedObject.GetComponent<Rigidbody>();
 
-                if(!isGrounded)
-                {
-                    shootCount += 1;
-                }
+            Debug.Log(grabbedObject.name + " " + grabbedObject.layer);
 
-                Physics.Raycast(camTransform.position, camTransform.forward, out hit, Mathf.Infinity);
+            isGrabbing = true;
+            restLength = hit.distance;
+            grabPoint = hit.point;
 
-                shootedObject = hit.collider.gameObject;
-                if(shootedObject.TryGetComponent(out ExplodeObject ExplodeObject))
-                {
-                    ExplodeObject.Explode();
-                }
-                
-                direction = (transform.position - hit.point).normalized * knockBackPower;
-                direction = new Vector3(direction.x * XZmultp, direction.y * Ymultp, direction.z * XZmultp);
-                //Debug.Log("silahla zipla");
-                playerRb.AddForce(direction, ForceMode.Impulse);
-
-                fireEffect = Instantiate(bumBum, hit.point, Quaternion.Euler(hit.normal));
-                Destroy(fireEffect, 2);
-            }
-        }else
-        {
-            timeAfterShoot += Time.deltaTime;
-            if(shootCount == 0)
-            {
-                slider.value = timeAfterShoot;
-            }else
-            {
-                slider.value = 0;
-            }
+            proceduralChain.DetectHookshotCollision(grabPoint, grabbedObject);
         }
     }
 
 
     void FixedUpdate()
-    {
-        playerRb.MovePosition(transform.position + Time.fixedDeltaTime * transform.TransformDirection(new Vector3(leftRight, playerRb.velocity.y, forwardBackward)));
-    
-        playerRb.AddForce(Vector3.up * jumpForce);
-    }
+    {   
+        PhysicalMovement();
 
-    private void OnTriggerStay(Collider other)
-    {
-        if(other.gameObject.CompareTag("SlowDown"))
+        Jump();
+
+        if(isGrabbing)
         {
-            isSlow = true;
+            Vector3 grabOffset = Vector3.zero;
+
+            // Calculate the direction from pointA to pointB
+            Vector3 direction = grabPoint - transform.position;
+
+            // Draw the line as a ray
+            Debug.DrawRay(transform.position, direction, Color.green);
+
+            if(grabbedObject != null && grabbedRb != null && !grabbedObject.isStatic)
+            {
+                Vector3 grabCurrentPosition = grabbedObject.transform.position;
+
+                if(grabLastPosition.magnitude != 0)
+                {
+                    grabOffset = grabCurrentPosition - grabLastPosition;
+                }
+                
+                grabLastPosition = grabCurrentPosition;
+
+                grabPoint += grabOffset;
+            }
+            
+            if(proceduralChain.didThrowed)
+            {
+                proceduralChain.SetLastChainPosition(grabPoint);
+            }
+            
+            SpringSystem(grabPoint);
+        }else
+        {
+            proceduralChain.DestroyChain();
         }
     }
 
-    private void OnTriggerExit(Collider other)
+
+    private void PhysicalMovement()
     {
-        if(other.gameObject.CompareTag("SlowDown"))
+        Vector3 verticalMoveDirection = cam.transform.forward * vertical;
+        Vector3 horizontalMoveDirection = cam.transform.right * horizontal;
+
+        Vector3 totalMove = verticalMoveDirection + horizontalMoveDirection;
+
+        playerRb.AddForce(totalMove.normalized * speed);
+
+        playerRb.velocity = Vector3.ClampMagnitude(playerRb.velocity, maxSpeed);
+    }
+
+
+    private void Jump()
+    {
+        if(isJumping)
         {
-            isSlow = false;
+            playerRb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            isJumping = false;
         }
     }
 
-    private void OnTriggerEnter(Collider other) {
-        if(other.gameObject.CompareTag("bitti"))
+
+    private void SpringSystem(Vector3 grabPoint)
+    {
+        float springVelocity = 0;
+        Vector3 suspensionForce = Vector3.zero;
+
+        // Damper için yayın hızını hesapla
+        float currentSpringLength = Vector3.Distance(transform.position, grabPoint);
+
+        if(lastLength != 0)
         {
-            bitti.SetActive(true);
+            springVelocity = (lastLength - currentSpringLength) / Time.fixedDeltaTime;
+        }
+
+        lastLength = currentSpringLength;
+
+        // Yay ve damper kuvvetini hesapla
+        float springForce = springStiffness * (restLength - currentSpringLength);
+        float damperForce = damperStiffness * springVelocity;
+        
+
+        Vector3 springDir = transform.position - grabPoint;
+        springDir.Normalize();
+            
+        if(springForce < 0)
+        {
+            suspensionForce = (springForce + damperForce) * springDir;
+        }
+
+        playerRb.AddForce(suspensionForce);
+
+        if(grabbedRb != null && !grabbedRb.isKinematic)
+        {
+            grabbedRb.AddForceAtPosition(-suspensionForce, grabPoint);
         }
     }
 }
